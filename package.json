@@ -7,7 +7,7 @@
     "url": "git+https://github.com/igpp/file-server.git"
   },
   "bin": {
-    "igpp-file-server": "./server.js"
+    "igpp-file-server": "./src/server.js"
   },
   "keywords": [
     "IGPP",
@@ -41,9 +41,9 @@
   },
   "files": [
     "public/",
+	"src/",
     "LICENSE",
-    "HISTORY.md",
-    "index.js"
+    "HISTORY.md"
   ],
   "engines": {
     "node": ">= 0.8.0"
