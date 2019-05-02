@@ -1,7 +1,7 @@
 {
   "name": "igpp-file-server",
   "description": "Serve directory listings and files",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/igpp/file-server.git"
@@ -41,7 +41,7 @@
   },
   "files": [
     "public/",
-	"src/",
+    "src/",
     "LICENSE",
     "HISTORY.md"
   ],
