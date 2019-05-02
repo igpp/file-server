@@ -1,0 +1,2 @@
+# Not needed in NPM package, also ignores paths in .gitignore
+test/

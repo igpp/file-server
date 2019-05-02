@@ -1,5 +1,9 @@
 /*!
- * serve-index
+ * file-server
+ * An enhanced version of serve-index.
+ * 2019 Todd King
+ *
+ * fork of https://github.com/expressjs/serve-index
  * Copyright(c) 2011 Sencha Inc.
  * Copyright(c) 2011 TJ Holowaychuk
  * Copyright(c) 2014-2015 Douglas Christopher Wilson
@@ -27,6 +31,8 @@ var Batch = require('batch');
 var mime = require('mime-types');
 var parseUrl = require('parseurl');
 var resolve = require('path').resolve;
+var formatBytes = require('bytes');
+var archiver = require('archiver');
 
 /**
  * Module exports.
@@ -97,6 +103,7 @@ function serveIndex(root, options) {
   var stylesheet = opts.stylesheet || defaultStylesheet;
   var template = opts.template || defaultTemplate;
   var view = opts.view || 'tiles';
+  var brand = opts.brand || 'File Server';
 
   return function (req, res, next) {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -127,10 +134,18 @@ function serveIndex(root, options) {
 
     // determine ".." display
     var showUp = normalize(resolve(path) + sep) !== rootPath;
+	
+	// Check if to send as package (zip or tar)
+	if(req.query.pack) {
+		console.log('Package: ' + rootPath + "(" + dir + ")");
+		serveIndex.pack(req, res, rootPath, '.' + dir, req.query.pack);
+		return;
+		// return next();
+	}
 
     // check if we have a directory
     debug('stat "%s"', path);
-    fs.stat(path, function(err, stat){
+    fs.stat(path, function(err, stat) {
       if (err && err.code === 'ENOENT') {
         return next();
       }
@@ -160,7 +175,7 @@ function serveIndex(root, options) {
 
         // not acceptable
         if (!type) return next(createError(406));
-        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet);
+        serveIndex[mediaType[type]](req, res, files, next, originalDir, showUp, icons, path, view, template, stylesheet, brand);
       });
     });
   };
@@ -170,7 +185,7 @@ function serveIndex(root, options) {
  * Respond with text/html.
  */
 
-serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet) {
+serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path, view, template, stylesheet, brand) {
   var render = typeof template !== 'function'
     ? createHtmlRender(template)
     : template
@@ -202,7 +217,8 @@ serveIndex.html = function _html(req, res, files, next, dir, showUp, icons, path
         fileList: fileList,
         path: path,
         style: style,
-        viewName: view
+        viewName: view,
+		brand: brand
       };
 
       // render html
@@ -230,6 +246,65 @@ serveIndex.plain = function _plain(req, res, files) {
   send(res, 'text/plain', (files.join('\n') + '\n'))
 };
 
+serveIndex.pack = function _pack(req, res, rootPath, dir, archiveType) {
+	// Check archive type
+	if(archiveType == "zip" || archiveType == "tar") {
+		// OK
+	} else {
+		response.send("Request for unsupported archive file format: " + archiveType);
+	}
+	
+    // join / normalize from root dir
+    var fullPath = normalize(join(rootPath, dir));
+	
+	console.log('fullPath: ' + fullPath);
+	var archive = archiver(archiveType) // Only "zip" or "tar" is allowed
+	.on('warning', function(err) { // good practice to catch warnings
+		console.log(err.message);
+		if (err.code === 'ENOENT') {
+		// log warning
+		} else {
+		// throw error
+		response.send(err.message);
+		}
+	})
+	.on('error', function(err) {	// good practice to catch this error explicitly
+		console.log(err.message);
+		response.send(err.message);
+	})
+	;
+	
+	var packName = path.basename(dir);
+	if(packName.length == 0) packName = "package";
+	if(packName == '.') packName = "package";
+	
+	console.log('dir: ' + dir);
+	console.log('packName: ' + packName);
+	
+	// Remove extension
+	packName = packName.replace(/\.[^/.]+$/, "");
+	
+	console.log('Setting response header');
+	// Set header for attached archive response
+	res.set({
+		'Content-Type': 'application/zip',
+		'Content-Disposition': 'attachment; filename="' + packName + '.' + archiveType + '"'
+	});
+
+	// pipe archive data to client
+	archive.pipe(res);
+
+	console.log("Adding to package");
+    if(fs.statSync(fullPath).isDirectory()) {
+		archive.directory(fullPath, dir);
+	} else {
+		archive.file(fullPath);
+	}
+
+	console.log("Done.");
+	// finalize the archive 
+	archive.finalize();
+}
 /**
  * Map html `files`, returning an html unordered list.
  * @private
@@ -240,8 +315,9 @@ function createHtmlFileList(files, dir, useIcons, view) {
     + (view === 'details' ? (
       '<li class="header">'
       + '<span class="name">Name</span>'
-      + '<span class="size">Size</span>'
       + '<span class="date">Modified</span>'
+      + '<span class="size">Size</span>'
+      + '<span class="action">Action</span>'
       + '</li>') : '');
 
   html += files.map(function (file) {
@@ -270,20 +346,25 @@ function createHtmlFileList(files, dir, useIcons, view) {
     path.push(encodeURIComponent(file.name));
 
     var date = file.stat && file.name !== '..'
-      ? file.stat.mtime.toLocaleDateString() + ' ' + file.stat.mtime.toLocaleTimeString()
+      ? file.stat.mtime.toISOString().replace("T", " ").replace("Z", "")
       : '';
     var size = file.stat && !isDir
-      ? file.stat.size
+      ? formatBytes(file.stat.size, { decimalPlaces: 1, fixedDecimal: true, unitSeparator: ' ' })
       : '';
+
+	var actions = '<a href="?package=zip">Zip</a> <a href="?package=tar">Tar</a>';
 
     return '<li><a href="'
       + escapeHtml(normalizeSlashes(normalize(path.join('/'))))
       + '" class="' + escapeHtml(classes.join(' ')) + '"'
       + ' title="' + escapeHtml(file.name) + '">'
       + '<span class="name">' + escapeHtml(file.name) + '</span>'
-      + '<span class="size">' + escapeHtml(size) + '</span>'
       + '<span class="date">' + escapeHtml(date) + '</span>'
-      + '</a></li>';
+      + '<span class="size">' + escapeHtml(size) + '</span>'
+      + '</a>'
+      + '<span class="action">' + actions + '</span>'
+      + '</li>'
+	  ;
   }).join('\n');
 
   html += '</ul>';
@@ -302,6 +383,7 @@ function createHtmlRender(template) {
       if (err) return callback(err);
 
       var body = str
+        .replace(/\{brand\}/g, locals.brand)
         .replace(/\{style\}/g, locals.style.concat(iconStyle(locals.fileList, locals.displayIcons)))
         .replace(/\{files\}/g, createHtmlFileList(locals.fileList, locals.directory, locals.displayIcons, locals.viewName))
         .replace(/\{directory\}/g, escapeHtml(locals.directory))

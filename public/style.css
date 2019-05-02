@@ -5,7 +5,7 @@
 }
 
 body {
-  padding: 80px 100px;
+  padding: 10px 100px;
   font: 13px "Helvetica Neue", "Lucida Grande", "Arial";
   background: #ECE9E9 -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#ECE9E9));
   background: #ECE9E9 -moz-linear-gradient(top, #fff, #ECE9E9);
@@ -79,7 +79,7 @@ ul#files li {
   line-height: 25px;
   margin: 1px;
 }
-ul#files li a {
+ul#files li {
   display: block;
   height: 25px;
   border: 1px solid transparent;
@@ -89,12 +89,12 @@ ul#files li a {
   overflow: hidden;
   white-space: nowrap;
 }
-ul#files li a:focus,
-ul#files li a:hover {
+ul#files li:focus,
+ul#files li:hover {
   background: rgba(255,255,255,0.65);
   border: 1px solid #ececec;
 }
-ul#files li a.highlight {
+ul#files li.highlight {
   -webkit-transition: background .4s ease-in-out;
   background: #ffff4f;
   border-color: #E9DC51;
@@ -140,7 +140,11 @@ ul#files li a.highlight {
 #files .icon .name {
   text-indent: 28px;
 }
-
+#brand {
+  top: 20px;
+  left: 20px;
+  font-size: 2em;
+}
 /*tiles*/
 .view-tiles .name {
   width: 100%;
@@ -167,8 +171,11 @@ ul#files.view-details li.header {
   border-radius: 5px;
 }
 .view-details .name {
-  width: 60%;
+  width: 50%;
   background-position: 8px 5px;
+}
+.view-details .action {
+  width: 10%;
 }
 .view-details .size {
   width: 10%;
@@ -176,10 +183,15 @@ ul#files.view-details li.header {
 .view-details .date {
   width: 30%;
 }
+.view-details .action,
 .view-details .size,
 .view-details .date {
   text-align: right;
-  direction: rtl;
+}
+.view-details .header .action,
+.view-details .header .size,
+.view-details .header .date {
+  text-align: center;
 }
 
 /*mobile*/
