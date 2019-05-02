@@ -257,7 +257,6 @@ serveIndex.pack = function _pack(req, res, rootPath, dir, archiveType) {
     // join / normalize from root dir
     var fullPath = normalize(join(rootPath, dir));
 	
-	console.log('fullPath: ' + fullPath);
 	var archive = archiver(archiveType) // Only "zip" or "tar" is allowed
 	.on('warning', function(err) { // good practice to catch warnings
 		console.log(err.message);
@@ -278,13 +277,10 @@ serveIndex.pack = function _pack(req, res, rootPath, dir, archiveType) {
 	if(packName.length == 0) packName = "package";
 	if(packName == '.') packName = "package";
 	
-	console.log('dir: ' + dir);
-	console.log('packName: ' + packName);
 	
 	// Remove extension
 	packName = packName.replace(/\.[^/.]+$/, "");
 	
-	console.log('Setting response header');
 	// Set header for attached archive response
 	res.set({
 		'Content-Type': 'application/zip',
@@ -294,14 +290,12 @@ serveIndex.pack = function _pack(req, res, rootPath, dir, archiveType) {
 	// pipe archive data to client
 	archive.pipe(res);
 
-	console.log("Adding to package");
     if(fs.statSync(fullPath).isDirectory()) {
-		archive.directory(fullPath, dir);
+		archive.directory(fullPath, packName);
 	} else {
 		archive.file(fullPath);
 	}
 
-	console.log("Done.");
 	// finalize the archive 
 	archive.finalize();
 }
@@ -352,11 +346,12 @@ function createHtmlFileList(files, dir, useIcons, view) {
       ? formatBytes(file.stat.size, { decimalPlaces: 1, fixedDecimal: true, unitSeparator: ' ' })
       : '';
 
-	var actions = '<a href="?package=zip">Zip</a> <a href="?package=tar">Tar</a>';
-
-    return '<li><a href="'
-      + escapeHtml(normalizeSlashes(normalize(path.join('/'))))
-      + '" class="' + escapeHtml(classes.join(' ')) + '"'
+	var url = escapeHtml(normalizeSlashes(normalize(path.join('/'))));
+	var actions = '';
+	if(isDir && file.name != "..") { actions = '<a href="' + url + '?pack=zip">Zip</a> <a href="' + url + '?pack=tar">Tar</a>'; }
+	
+    return '<li><a href="' + url + '"'
+      + ' class="' + escapeHtml(classes.join(' ')) + '"'
       + ' title="' + escapeHtml(file.name) + '">'
       + '<span class="name">' + escapeHtml(file.name) + '</span>'
       + '<span class="date">' + escapeHtml(date) + '</span>'
