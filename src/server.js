@@ -76,6 +76,20 @@ var options  = yargs
  * Create HTTP server.
  */
 
+// Check if environment variables are used to set options
+if(process.env.PROJECT_NAME) {
+	options.b = options.brand = process.env.PROJECT_NAME;
+}
+if(process.env.PROJECT_ROOT) {
+	options.r = options.root = process.env.PROJECT_ROOT;
+}
+if(process.env.PROJECT_DIRECTORY) {
+	options.d = options.directory = process.env.PROJECT_DIRECTORY;
+}
+if(process.env.PROJECT_PORT) {
+	options.p = options.port = process.env.PROJECT_PORT;
+}
+
 if(options.verbose) {
 	console.log(JSON.stringify(options, null, 3));
 }
