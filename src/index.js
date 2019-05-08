@@ -347,6 +347,8 @@ function createHtmlFileList(files, dir, useIcons, view) {
 
 	// var url = escapeHtml(normalizeSlashes(normalize(path.join('/'))));
 	var url = escapeHtml(file.name);
+    if (isDir) { url += "/"; }	// Add so nginx routing works properly.
+
 	var actions = '';
 	if(file.name != "..") {
 		if(isDir) { actions = '<a href="' + url + '?pack=zip">Zip</a> <a href="' + url + '?pack=tar">Tar</a>'; }
