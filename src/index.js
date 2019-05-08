@@ -91,7 +91,7 @@ function serveIndex(root, options) {
 
   // root required
   if (!root) {
-    throw new TypeError('serveIndex() root path required');
+    throw new TypeError('serveF() root path required');
   }
 
   // resolve root to absolute and normalize
@@ -137,7 +137,6 @@ function serveIndex(root, options) {
 	
 	// Check if to send as package (zip or tar)
 	if(req.query.pack) {
-		console.log('Package: ' + rootPath + "(" + dir + ")");
 		serveIndex.pack(req, res, rootPath, '.' + dir, req.query.pack);
 		return;
 		// return next();
@@ -346,9 +345,13 @@ function createHtmlFileList(files, dir, useIcons, view) {
       ? formatBytes(file.stat.size, { decimalPlaces: 1, fixedDecimal: true, unitSeparator: ' ' })
       : '';
 
-	var url = escapeHtml(normalizeSlashes(normalize(path.join('/'))));
+	// var url = escapeHtml(normalizeSlashes(normalize(path.join('/'))));
+	var url = escapeHtml(file.name);
 	var actions = '';
-	if(isDir && file.name != "..") { actions = '<a href="' + url + '?pack=zip">Zip</a> <a href="' + url + '?pack=tar">Tar</a>'; }
+	if(file.name != "..") {
+		if(isDir) { actions = '<a href="' + url + '?pack=zip">Zip</a> <a href="' + url + '?pack=tar">Tar</a>'; }
+		else      { actions = '<a href="' + url + '" download>Download</a>'; }
+	}
 	
     return '<li><a href="' + url + '"'
       + ' class="' + escapeHtml(classes.join(' ')) + '"'
